@@ -114,9 +114,6 @@ jobs:
       - run:
           name: Ensure back-end infrastructure exists
           command: |
-            aws configure
-            aws_access_key_id = AKIAZPYWUSKDQ32GZGXN
-            aws_secret_access_key = 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
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
               --tags project=udapeople \
