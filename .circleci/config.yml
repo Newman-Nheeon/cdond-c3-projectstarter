@@ -126,24 +126,24 @@ jobs:
   deploy-infrastructure:
     docker:
         - image: amazon/aws-cli
-      steps:
-        - checkout
-        - run:
-            name: Create Cloudformation Backend Stack
-            command: |
-              aws cloudformation deploy \
-                --template-file .circleci/files/backend.yml \
-                --stack-name backend-stack-${CIRCLE_WORKFLOW_ID:0:7} \
-                --region us-east-1
+    steps:
+      - checkout
+      - run:
+          name: Create Cloudformation Backend Stack
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/backend.yml \
+              --stack-name backend-stack-${CIRCLE_WORKFLOW_ID:0:7} \
+              --region us-east-1
 
-        - run:
-            name: Create Cloudformation Frontend Stack
-            command: |
-              aws cloudformation deploy \
-                --template-file .circleci/files/frontend.yml \
-                --stack-name frontend-stack-${CIRCLE_WORKFLOW_ID:0:7} \
-                --region us-east-1
-      
+      - run:
+          name: Create Cloudformation Frontend Stack
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/frontend.yml \
+              --stack-name frontend-stack-${CIRCLE_WORKFLOW_ID:0:7} \
+              --region us-east-1
+    
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
     
