@@ -125,44 +125,24 @@ jobs:
   
   deploy-infrastructure:
     docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
+        - image: amazon/aws-cli
+      steps:
+        - checkout
+        - run:
+            name: Create Cloudformation Backend Stack
+            command: |
+              aws cloudformation deploy \
+                --template-file .circleci/files/backend.yml \
+                --stack-name backend-stack-${CIRCLE_WORKFLOW_ID:0:7} \
+                --region us-east-1
 
-      - run:
-          name: Install prerequsites
-          command: |
-            yum -y install tar gzip jq git
-      - run:
-          name: Ensure backend infrastructure exists
-          command: |
-            # build-backend:
-            aws cloudformation deploy \
-              --template-file .circleci/files/backend.yml \
-              --tags project=udapeople \
-              --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}
-      - run:
-          name: Add backend ip to ansible inventory
-          command: |
-            aws ec2 describe-instances \
-            --filters "Name=tag:project,Values=udapeople" \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --output text >> .circleci/ansible/inventory.txt
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - project/.circleci/ansible/inventory.txt
-
-      - run:
-          name: Ensure frontend infrastructure exist
-          command: |
-            # build-frontend:
-            aws cloudformation deploy \
-            --template-file .circleci/files/frontend.yml \
-            --tags project=udapeople \
-            --stack-name "frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
-            --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+        - run:
+            name: Create Cloudformation Frontend Stack
+            command: |
+              aws cloudformation deploy \
+                --template-file .circleci/files/frontend.yml \
+                --stack-name frontend-stack-${CIRCLE_WORKFLOW_ID:0:7} \
+                --region us-east-1
       
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
