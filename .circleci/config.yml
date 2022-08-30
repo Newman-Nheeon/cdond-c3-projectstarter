@@ -161,29 +161,29 @@ jobs:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
   
-  configure-infrastructure:
-    docker:
-      - image: python:3.7-alpine3.11
-    steps:
-      - checkout
-      - add_ssh_keys:
-        fingerprints: ["67:64:1c:a9:af:fd:ef:eb:84:fa:28:9a:c1:31:77:22"]
-      - attach_workspace:
-            at: ~/
-      - run:
-          name: Install dependencies
-          command: |
-            # Your code here / install dependencies
-            apk add --update ansible
-      - run:
-          name: Configure server
-          command: |
-            cd .circleci/ansible
-            cat inventory.txt
-            ansible-playbook -i inventory.txt configure-server.yml
+  # configure-infrastructure:
+  #   docker:
+  #     - image: python:3.7-alpine3.11
+  #   steps:
+  #     - checkout
+  #     - add_ssh_keys:
+  #       fingerprints: ["67:64:1c:a9:af:fd:ef:eb:84:fa:28:9a:c1:31:77:22"]
+  #     - attach_workspace:
+  #           at: ~/
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           # Your code here / install dependencies
+  #           apk add --update ansible
+  #     - run:
+  #         name: Configure server
+  #         command: |
+  #           cd .circleci/ansible
+  #           cat inventory.txt
+  #           ansible-playbook -i inventory.txt configure-server.yml
             
-      - destroy-environment:
-                  workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+  #     - destroy-environment:
+  #                 workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
     
 
 workflows:
