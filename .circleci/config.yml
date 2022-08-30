@@ -136,14 +136,6 @@ jobs:
               --tags project=udapeople-backend \
               --stack-name backend-"${CIRCLE_WORKFLOW_ID}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"
-            # export BACKEND_URL=$(aws cloudformation describe-stacks \
-            #   --stack-name backend-"${CIRCLE_WORKFLOW_ID}" \
-            #   --query "Stacks[0].Outputs[?OutputKey=='BackendURL'].OutputValue" \
-            #   --no-paginate --output text)
-            # echo $BACKEND_URL
-            # curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID}" \
-            #   --request PUT --data "${BACKEND_URL}" \
-            #   https://api.memstash.io/values/backendurl
       - run:
           name: Ensure front-end infrastructure exist
           command: |
