@@ -129,6 +129,11 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install dependencies
+          command: |
+            apk add --update tar gzip curl
+            pip install awscli
+      - run:
           name: Create Cloudformation Backend Stack
           command: |
             aws cloudformation deploy \
