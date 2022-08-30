@@ -125,45 +125,48 @@ jobs:
   
   deploy-infrastructure:
     docker:
-        - image: amazon/aws-cli
+      - image: amazon/aws-cli
     steps:
       - checkout
       - run:
-          name: Install dependencies
-          command: |
-            apk add --update tar gzip curl
-            pip install awscli
-      - run:
-          name: Create Cloudformation Backend Stack
+          name: Ensure back-end infrastructure exists
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
-              --stack-name backend-stack-${CIRCLE_WORKFLOW_ID:0:7} \
-              --region us-east-1
-
+              --tags project=udapeople-backend \
+              --stack-name backend-"${CIRCLE_WORKFLOW_ID}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"
+            export BACKEND_URL=$(aws cloudformation describe-stacks \
+              --stack-name backend-"${CIRCLE_WORKFLOW_ID}" \
+              --query "Stacks[0].Outputs[?OutputKey=='BackendURL'].OutputValue" \
+              --no-paginate --output text)
+            echo $BACKEND_URL
+            curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID}" \
+              --request PUT --data "${BACKEND_URL}" \
+              https://api.memstash.io/values/backendurl
       - run:
-          name: Create Cloudformation Frontend Stack
+          name: Ensure front-end infrastructure exist
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/frontend.yml \
-              --stack-name frontend-stack-${CIRCLE_WORKFLOW_ID:0:7} \
-              --region us-east-1
-
+              --tags project=udapeople-frontend \
+              --stack-name frontend-"${CIRCLE_WORKFLOW_ID}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"
       - run:
           name: Add back-end ip to ansible inventory
           command: |
-            aws ec2 describe-instances \
-            --filters "Name=tag:project,Values=udapeople" \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --output text >> .circleci/ansible/inventory.txt
-
+            export BACKEND_URL=$(curl -H "token: ${CIRCLE_WORKFLOW_ID}" \
+              --request GET https://api.memstash.io/values/backendurl)
+            echo "${BACKEND_URL}" >> .circleci/ansible/inventory.txt
+            cat .circleci/ansible/inventory.txt
+      - run: yum -y install tar gzip
       - persist_to_workspace:
-          root: ~/
+          root: .circleci/ansible
           paths:
-            - project/.circleci/ansible/inventory.txt
-    
+            - inventory.txt
+      # This command has a when: on_fail
       - destroy-environment:
-          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+          workflow_id: "${CIRCLE_WORKFLOW_ID}"
 
   
   # configure-infrastructure:
