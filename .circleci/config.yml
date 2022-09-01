@@ -194,7 +194,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
-          apk add --update --no-cache tar gzip nodejs npm aws-cli curl
+            apk add --update --no-cache tar gzip nodejs npm aws-cli curl
       - restore_cache:
           keys: [backend-build]
       - run:
