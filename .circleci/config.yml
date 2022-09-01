@@ -164,27 +164,29 @@ jobs:
   
   configure-infrastructure:
     docker:
-      - image: python:3.7-alpine3.11
+        - image: python:3.7-alpine
+          environment:
+              ANSIBLE_HOST_KEY_CHECKING: "no"
     steps:
-      - checkout
-      - add_ssh_keys:
-        fingerprints: ["67:64:1c:a9:af:fd:ef:eb:84:fa:28:9a:c1:31:77:22"]
-      - attach_workspace:
-            at: ~/
-      - run:
-          name: Install dependencies
-          command: |
-            # Your code here / install dependencies
-            apk add --update ansible
-      - run:
-          name: Configure server
-          command: |
-            cd .circleci/ansible
-            cat inventory.txt
-            ansible-playbook -i inventory.txt configure-server.yml
-            
-      - destroy-environment:
-                  workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+        - checkout
+        - run:
+              name: Install config dependencies
+              command: |
+                  apk add --update tar gzip curl nodejs npm ansible zip
+                  pip install awscli
+        - add_ssh_keys:
+              fingerprints:
+                  ["67:64:1c:a9:af:fd:ef:eb:84:fa:28:9a:c1:31:77:22"]
+        - attach_workspace:
+              at: ~/
+        - run:
+              name: Configure Server
+              command: |
+                  cd .circleci/ansible
+                  cat inventory.txt
+                  ansible-playbook -i inventory.txt configure-server.yml
+        - destroy-environment:
+              workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
   # run-migrations:
   #   docker:
