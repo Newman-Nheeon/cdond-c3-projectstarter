@@ -186,42 +186,42 @@ jobs:
       - destroy-environment:
                   workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
-  run-migrations:
-    docker:
-        - image: circleci/node:13.8.0
-    steps:
-        - checkout
-        - restore_cache:
-            keys: [backend-build]
-        - run:
-              name: Install dependencies
-              command: |
-                  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-                  unzip awscliv2.zip
-                  sudo ./aws/install
-                  echo aws --version
-        - run:
-              name: Run migrations
-              command: |
-                  cd backend
-                  npm install
-                  npm run migrations >> migrations_dump.txt
-                  cat migrations_dump.txt
-        - run:
-              name: Send migration info to kvdb.io 
-              command: |   
-                  if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
-                  then
-                      curl https://kvdb.io/9GE4jRtKznmVKRfvdBABBe/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
-                      echo "migration complete -------"
-                  else 
-                      echo "no migration happened"
+  # run-migrations:
+  #   docker:
+  #       - image: circleci/node:13.8.0
+  #   steps:
+  #       - checkout
+  #       - restore_cache:
+  #           keys: [backend-build]
+  #       - run:
+  #             name: Install dependencies
+  #             command: |
+  #                 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  #                 unzip awscliv2.zip
+  #                 sudo ./aws/install
+  #                 echo aws --version
+  #       - run:
+  #             name: Run migrations
+  #             command: |
+  #                 cd backend
+  #                 npm install
+  #                 npm run migrations >> migrations_dump.txt
+  #                 cat migrations_dump.txt
+  #       - run:
+  #             name: Send migration info to kvdb.io 
+  #             command: |   
+  #                 if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
+  #                 then
+  #                     curl https://kvdb.io/9GE4jRtKznmVKRfvdBABBe/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
+  #                     echo "migration complete -------"
+  #                 else 
+  #                     echo "no migration happened"
                     
-                  fi
-        - destroy-environment:
-              workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-        - revert-migrations:
-              workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+  #                 fi
+  #       - destroy-environment:
+  #             workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+  #       - revert-migrations:
+  #             workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
     
 
 workflows:
@@ -244,5 +244,5 @@ workflows:
               only: [master]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
-      - run-migrations:
-          requires: [configure-infrastructure]
+      # - run-migrations:
+      #     requires: [configure-infrastructure]
