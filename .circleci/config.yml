@@ -190,24 +190,21 @@ jobs:
 
   run-migrations:
     docker:
-        - image: circleci/node:13.8.0
+        - image: python:3.7-alpine3.16
     steps:
         - checkout
+        - run:
+            name: Install Dependencies
+            command: |
+              apk add --update --no-cache tar gzip nodejs npm aws-cli curl
         - restore_cache:
             keys: [backend-build]
-        - run:
-              name: Install dependencies
-              command: |
-                  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-                  unzip awscliv2.zip
-                  sudo ./aws/install
-                  echo aws --version
+        
         - run:
               name: Run migrations
               command: |
                   cd backend
                   npm install
-                  npm audit fix --force
                   npm run migrations >> migrations_dump.txt
                   cat migrations_dump.txt
         - run:
