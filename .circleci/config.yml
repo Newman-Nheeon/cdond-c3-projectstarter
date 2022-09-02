@@ -323,19 +323,7 @@ jobs:
         - attach_workspace:
               at: ~/
         - run:
-              name: Smoke Test frontend app
-              command: |
-                  URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
-                  echo ${URL} 
-                  if curl -s ${URL} | grep "Welcome"
-                  then
-                    # Change this to 0 after the job fails
-                      return 0
-                  else
-                      return 1
-                  fi
-        - run:
-              name: Get backend url
+              name: Backend Smoke Test
               command: |
                   export BACKEND_IP=$(aws ec2 describe-instances \
                     --filters "Name=tag:project,Values=udapeople" \
@@ -349,8 +337,18 @@ jobs:
                   else
                       return 1
                   fi
-        
-        
+        - run:
+              name: Frontend Smoke Test
+              command: |
+                  URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
+                  echo ${URL} 
+                  if curl -s ${URL} | grep "Welcome"
+                  then
+                      # Change this to 0 after the job fails
+                    return 1
+                  else
+                    return 1
+                  fi
         - destroy-environment:
               workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
 
