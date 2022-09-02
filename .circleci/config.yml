@@ -282,11 +282,11 @@ jobs:
       - checkout 
       - add_ssh_keys:
             fingerprints:
-                ["67:64:1c:a9:af:fd:ef:eb:84:fa:28:9a:c1:31:77:22"]
+               - '67:64:1c:a9:af:fd:ef:eb:84:fa:28:9a:c1:31:77:22'
       - run:
           name: Install dependencies
           command: |
-            apk add --update --no-cache tar gzip npm aws-cli ansible
+            apk add --update --no-cache tar gzip nodejs npm aws-cli ansible
       - attach_workspace:
             at: ~/
       - restore_cache:
