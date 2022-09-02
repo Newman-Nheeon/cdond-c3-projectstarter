@@ -320,7 +320,7 @@ jobs:
           command: |
             apk add --update --no-cache curl aws-cli tar gzip nodejs npm
       - run:
-          name: Backend Smoke Test
+          name: Backend smoke test
           command: |
             export BACKEND_IP=$(aws ec2 describe-instances \
             --filters "Name=tag:project,Values=udapeople" \
