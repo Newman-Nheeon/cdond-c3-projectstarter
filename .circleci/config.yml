@@ -288,9 +288,9 @@ jobs:
           command: |
             apk add --update --no-cache tar gzip nodejs npm aws-cli ansible
       - attach_workspace:
-            at: ~/
+          at: ~/
       - restore_cache:
-        keys: [backend-build]
+          keys: [backend-build]
       - run:
           name: Deploy backend
           command: |
