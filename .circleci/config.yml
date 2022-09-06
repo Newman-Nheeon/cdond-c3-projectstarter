@@ -378,24 +378,33 @@ jobs:
                 
             - destroy-environment:
                   workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
-# cleanup:
-#     docker:
-#       # Docker image here
-#     steps:
-#       # Checkout code from git
-#       - run:
-#           name: Get old stack workflow id
-#           command: |
-#             # your code here
-#             export OldWorkflowID="the id here"
-#             export STACKS=[] #put the list of stacks here
-#       - run:
-#           name: Remove old stacks and files
-#           command: |
-#             if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
-#             then
-#               # your code here
-#             fi
+  cleanup:
+          docker:
+              - image: python:3.7-alpine
+          steps:
+              - checkout
+              - run:
+                  name: Install dependencies
+                  command: |
+                      apk add --update curl bash
+                      pip install awscli
+                      pip install nodejs 
+              - run:
+                    name: Remove old stacks and files
+                    shell: /bin/bash
+                    command: |
+                        export STACKS=$(aws cloudformation list-stacks \
+                          --query "StackSummaries[*].StackName" \
+                          --stack-status-filter CREATE_COMPLETE --no-paginate --output text) 
+                        echo Stack names: "${STACKS[@]}"
+                        export OldWorkflowID=$(curl --insecure https://kvdb.io/BCkQQGfj9UgTpMpTV3sTdY/OLD_WORKFLOW_ID)
+                        echo Old Workflow ID: $OldWorkflowID 
+                        if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
+                        then
+                          aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
+                          aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
+                          aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
+                        fi
 
 workflows:
   default:
@@ -427,5 +436,5 @@ workflows:
           requires: [deploy-backend, deploy-frontend]
       - cloudfront-update:
           requires: [smoke-test]
-      # - cleanup:
-      #     requires: [cloudfront-update]
+      - cleanup:
+          requires: [cloudfront-update]
