@@ -294,21 +294,21 @@ jobs:
                       pip install awscli
                       aws --version
            
-            # - run:
-            #       name: Package, Deploy Backend and configure prometheus service discovery
-            #       command: |
-            #           cd backend
-            #           npm i
-            #           npm run build 
-            #           cd ..
-            #           tar -C backend -czvf artifact.tar.gz .
-            #           mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
-            #           mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
-            #           cd .circleci/ansible
-            #           echo "contents of the inventory.txt file is ------$(tail -i inventory.txt)"
-            #           cat inventory.txt
-            #           export ANSIBLE_HOST_KEY_CHECKING=False
-            #           ansible-playbook -i inventory.txt deploy-backend.yml
+            - run:
+                  name: Package, Deploy Backend and configure prometheus service discovery
+                  command: |
+                      cd backend
+                      npm i
+                      npm run build 
+                      cd ..
+                      tar -C backend -czvf artifact.tar.gz .
+                      mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
+                      mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
+                      cd .circleci/ansible
+                      echo "contents of the inventory.txt file is ------$(tail -i inventory.txt)"
+                      cat inventory.txt
+                      export ANSIBLE_HOST_KEY_CHECKING=False
+                      ansible-playbook -i inventory.txt deploy-backend.yml
                      
             - destroy-environment:
                   workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
