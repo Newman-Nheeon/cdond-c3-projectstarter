@@ -275,38 +275,35 @@ jobs:
                   workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
 
     deploy-backend:
-        docker:
-            - image: python:3.7-alpine3.11
-        steps:
-            - checkout
-            - add_ssh_keys:
-                fingerprints: ["67:64:1c:a9:af:fd:ef:eb:84:fa:28:9a:c1:31:77:22"]
-            - attach_workspace:
-                at: ~/          
-            - run:
-                  name: Install dependencies
-                  working_directory: /tmp
-                  command: |
-                      apk add --update ansible curl rsync openssh nodejs npm
-                      ansible --version
-                      pip install awscli
-                      aws --version
-           
-            - run:
-                  name: Package, Deploy Backend and configure prometheus service discovery
-                  command: |
-                      cd backend
-                      npm i
-                      npm run build 
-                      cd ..
-                      tar -C backend -czvf artifact.tar.gz .
-                      mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
-                      mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
-                      cd .circleci/ansible
-                      echo "contents of the inventory.txt file is ------$(tail -i inventory.txt)"
-                      cat inventory.txt
-                      export ANSIBLE_HOST_KEY_CHECKING=False
-                      ansible-playbook -i inventory.txt deploy-backend.yml
+    docker:
+      - image: python:3.7-alpine3.16
+    steps:
+      - checkout 
+      - add_ssh_keys:
+            fingerprints:
+               - '67:64:1c:a9:af:fd:ef:eb:84:fa:28:9a:c1:31:77:22'
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update --no-cache tar gzip nodejs npm aws-cli ansible
+      - attach_workspace:
+          at: ~/
+      - restore_cache:
+          keys: [backend-build]
+      - run:
+          name: Deploy backend
+          command: |
+            cd backend
+            npm install
+            npm run build
+            cd ..
+            # Zip the directory
+            tar -C backend -czvf artifact.tar.gz .
+            mkdir -p ~/project/.circleci/ansible/roles/deploy/files
+            mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
+            cd .circleci/ansible
+            echo "Contents  of the inventory.txt file is -------$(cat inventory.txt)"
+            ansible-playbook -i inventory.txt deploy-backend.yml
                      
             - destroy-environment:
                   workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
