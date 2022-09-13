@@ -1,4 +1,6 @@
 version: 2.1
+# orbs:
+#   slack: circleci/slack@4.1
 commands:
     destroy-environment:
         description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
@@ -26,7 +28,7 @@ commands:
                   name: Revert migrations
                   when: on_fail
                   command: |
-                      SUCCESS=$(curl --insecure  https://kvdb.io/7TdPGyxnNx4AjFCFAJYmzq/migration_<< parameters.workflow_id >>)
+                      SUCCESS=$(curl --insecure  https://kvdb.io/4h5LTL8Y51di9ZATQAivkn/migration_<< parameters.workflow_id >>)
                         # Logic for reverting the database state
                       if (( $SUCCESS == 1 ));
                       then
@@ -225,7 +227,7 @@ jobs:
                   command: |   
                       if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
                       then
-                          curl --insecure https://kvdb.io/7TdPGyxnNx4AjFCFAJYmzq/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
+                          curl --insecure https://kvdb.io/4h5LTL8Y51di9ZATQAivkn/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
                           echo "migration complete -------"
                       else 
                           echo "no migration happened"
@@ -236,76 +238,82 @@ jobs:
             - revert-migrations:
                   workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
-    deploy-backend:
-        docker:
-            - image: python:3.7-alpine3.16
-        steps:
-            - checkout 
-            - add_ssh_keys:
-                fingerprints:
-                    - '67:64:1c:a9:af:fd:ef:eb:84:fa:28:9a:c1:31:77:22'
-            - run:
-                name: Install dependencies
-                command: |
-                    apk add --update --no-cache tar gzip nodejs npm aws-cli ansible
-            - attach_workspace:
-                at: ~/
-            - restore_cache:
-                keys: [backend-build]
-            - run:
-                name: Deploy backend
-                command: |
-                    cd backend
-                    npm install
-                    npm run build
-                    cd ..
-                    # Zip the directory
-                    tar -C backend -czvf artifact.tar.gz .
-                    mkdir -p ~/project/.circleci/ansible/roles/deploy/files
-                    mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
-                    cd .circleci/ansible
-                    echo "Contents  of the inventory.txt file is -------$(cat inventory.txt)"
-                    ansible-playbook -i inventory.txt deploy-backend.yml
-            - destroy-environment:
-                workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-            - revert-migrations:
-                workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-
     deploy-frontend:
         docker:
-            - image: python:3.7-alpine3.16
+            - image: python:3.7-alpine
         steps:
             - checkout
+
             - run:
-                name: Install dependencies
-                command: |
-                    apk add --update --no-cache tar gzip nodejs npm aws-cli
-            - restore_cache:
-                keys: [frontend-build]
+                  name: Install dependencies
+                  command: |
+                      apk add --update tar gzip curl nodejs npm zip
+                      pip install awscli
+            - attach_workspace:
+                  at: ~/     
+
             - run:
-                name: Get backend url
-                command: |
-                    export BACKEND_IP=$(aws ec2 describe-instances \
-                    --filters "Name=tag:project,Values=udapeople" \
-                    --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                    --output text)
-                    export API_URL="http://${BACKEND_IP}:3030"
-                    echo "API_URL = ${API_URL}"
-                    echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
-                    cat frontend/.env
-        
+                  name: Get backend url
+                  command: |
+                       export BACKEND_IP=$(aws ec2 describe-instances \
+                        --filters "Name=tag:project,Values=udapeople" \
+                        --query 'Reservations[*].Instances[*].PublicIpAddress' \
+                        --output text)
+                       export API_URL="http://${BACKEND_IP}:3030"
+                       echo "${API_URL}"     
+                       echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+                       cat frontend/.env   
             - run:
-                name: Deploy frontend objects
-                command: |
-                    cd frontend
-                    npm install
-                    npm run build
-                    tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
-                    aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+                  name: Build and Deploy frontend objects
+                  command: |
+                       cd frontend
+                       npm install
+                       npm run build
+                       tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
+                       aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
             - destroy-environment:
-                workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+                  workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
             - revert-migrations:
-                workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+                  workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
+
+    deploy-backend:
+        docker:
+            - image: python:3.7-alpine3.11
+        steps:
+            - checkout
+            - add_ssh_keys:
+                fingerprints: ["67:64:1c:a9:af:fd:ef:eb:84:fa:28:9a:c1:31:77:22"]
+            - attach_workspace:
+                at: ~/          
+            - run:
+                  name: Install dependencies
+                  working_directory: /tmp
+                  command: |
+                      apk add --update ansible curl rsync openssh nodejs npm
+                      ansible --version
+                      pip install awscli
+                      aws --version
+           
+            - run:
+                  name: Package, Deploy Backend and configure prometheus service discovery
+                  command: |
+                      cd backend
+                      npm i
+                      npm run build 
+                      cd ..
+                      tar -C backend -czvf artifact.tar.gz .
+                      mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
+                      mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
+                      cd .circleci/ansible
+                      echo "contents of the inventory.txt file is ------$(tail -i inventory.txt)"
+                      cat inventory.txt
+                      export ANSIBLE_HOST_KEY_CHECKING=False
+                      ansible-playbook -i inventory.txt deploy-backend.yml
+                     
+            - destroy-environment:
+                  workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
+            - revert-migrations:
+                  workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
 
     smoke-test:
         docker:
@@ -370,7 +378,7 @@ jobs:
                             list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
                             --no-paginate --output text)
                         echo "old workflow ID is: $OLD_WORKFLOW_ID"
-                       curl -k https://kvdb.io/7TdPGyxnNx4AjFCFAJYmzq/OLD_WORKFLOW_ID -d "${OLD_WORKFLOW_ID}"
+                       curl -k https://kvdb.io/4h5LTL8Y51di9ZATQAivkn/OLD_WORKFLOW_ID -d "${OLD_WORKFLOW_ID}"
             - run:
                   name: Update Cloudfront 
                   command:  |
@@ -404,7 +412,7 @@ jobs:
                         --query "StackSummaries[*].StackName" \
                         --stack-status-filter CREATE_COMPLETE --no-paginate --output text) 
                       echo Stack names: "${STACKS[@]}"
-                      export OldWorkflowID=$(curl --insecure https://kvdb.io/7TdPGyxnNx4AjFCFAJYmzq/OLD_WORKFLOW_ID)
+                      export OldWorkflowID=$(curl --insecure https://kvdb.io/4h5LTL8Y51di9ZATQAivknY/OLD_WORKFLOW_ID)
                       echo Old Workflow ID: $OldWorkflowID 
                       if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
                       then
